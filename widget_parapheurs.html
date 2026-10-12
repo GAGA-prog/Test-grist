@@ -108,17 +108,11 @@ let aTraite = true;
 grist.ready({
   requiredAccess: "full",
   columns: [
-    {name:"Nom",title:"Nom",type:"Text"},
-    {name:"Echeance",title:"Échéance",type:"Date,DateTime"},
-    {name:"URL_Chrono",title:"Lien Chrono",type:"Text"},
-    {name:"Statut",title:"Statut",type:"Text"},
-    {name:"Retard",title:"Retard",type:"Text"},
-    {name:"Ordre_Statut",title:"Ordre Statut",type:"Numeric"},
-    {name:"sc",title:"Service / circuit (sc)",type:"Text",optional:true},
-    {name:"Identite_courante",title:"Identité courante",type:"Text",optional:true},
-    {name:"Auteur_courant",title:"Auteur courant",type:"Text",optional:true},
-    {name:"Date_de_creation",title:"Date de création",type:"Date,DateTime",optional:true},
-    {name:"Avec_Echeance",title:"Avec échéance",type:"Numeric",optional:true}
+    { name: "Nom",      title: "Nom",                    type: "Text" },
+    { name: "Services", title: "Services",               type: "Text,Choice" },
+    { name: "Delai",    title: "Délai de réponse",       type: "Date,DateTime,Numeric,Text" },
+    { name: "Lien",     title: "Lien du parapheur",      type: "Text" },
+    { name: "Traite",   title: "Traité (case à cocher)", type: "Bool", optional: true }
   ]
 });
 
