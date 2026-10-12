@@ -101,8 +101,9 @@ grist.ready({
   columns: [
     { name: "Nom",      title: "Nom",                    type: "Text" },
     { name: "Services", title: "Services",               type: "Text,Choice" },
-    { name: "Delai ... ",    title: "Délai de réponse",       type: "Date,DateTime,Numeric,Text" },
+    { name: "Delai",    title: "Délai de réponse",       type: "Date,DateTime,Numeric,Text" },
     { name: "Lien",     title: "Lien du parapheur",      type: "Text" },
+    { name : "Numero", title: " Numéro QE", type: "Numeric"}
   ]
 });
 
@@ -156,7 +157,7 @@ function enrichir(r) {
 }
 function texteEtat(l) {
   if (l.restant == null) return "";
-  if (!(l.d instanceof Date)) return "Délai : " + l.restant + " j";
+  if (!(l.d instanceof Date)) return "QE Numéro" + l.restant + " j";
   if (l.restant < 0) return "En retard de " + (-l.restant) + " j";
   if (l.restant === 0) return "À rendre aujourd'hui";
   return "J-" + l.restant;
@@ -259,14 +260,6 @@ function renderEntete() {
   puces.appendChild(el("span", "puce", aFaire.length + " à traiter"));
   if (retard) puces.appendChild(el("span", "puce alerte", retard + " en retard"));
   if (aTraite) puces.appendChild(el("span", "puce", (lignes.length - aFaire.length) + " traités"));
-
-  const carte = document.getElementById("carte");
-  carte.innerHTML = "";
-  const prochain = aFaire.filter(l => l.d instanceof Date).sort((a, b) => a.cle - b.cle)[0];
-  carte.appendChild(el("small", null, "Prochaine échéance"));
-  if (!prochain) {
-    carte.appendChild(el("span", null, "Aucune échéance à venir."));
-    return;
   }
   carte.appendChild(el("strong", null,
     prochain.d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" })));
