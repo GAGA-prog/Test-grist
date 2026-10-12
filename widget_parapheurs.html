@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Suivi des parapheurs</title>
+<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+<style>
+:root{
+  --bleu:#000091; --bleu-clair:#e3e3fd; --fond:#f5f5f5; --texte:#161616; --doux:#666;
+  --bordure:#ddd; --vert-bg:#dffee6; --vert:#18753c; --orange-bg:#fff4d6; --orange:#b34000;
+  --rouge-bg:#ffe9e9; --rouge:#ce0500;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fond);color:var(--texte);font-family:Marianne,"Segoe UI",system-ui,sans-serif;font-size:14px}
+button,select,input{font:inherit}
+
+/* Bandeau */
+.hero{background:var(--bleu);color:#fff;padding:24px 28px;display:flex;gap:24px;flex-wrap:wrap;justify-content:space-between;align-items:flex-start}
+.hero-gauche{flex:1 1 380px;min-width:260px}
+.hero h1{margin:0 0 14px;font-size:26px;line-height:1.2}
+.hero p{margin:0 0 14px;font-size:15px}
+.puces{display:flex;gap:8px;flex-wrap:wrap}
+.puce{background:rgba(255,255,255,.14);border-radius:6px;padding:4px 10px;font-size:12.5px;font-weight:600}
+.puce.alerte{background:#fff;color:var(--rouge)}
+
+/* Carte « prochaine échéance » */
+.carte{background:#fff;color:var(--texte);border-radius:12px;padding:18px 20px;flex:0 1 420px;min-width:260px}
+.carte small{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--doux);margin-bottom:10px;text-transform:uppercase}
+.carte strong{display:block;font-size:19px;margin-bottom:6px;text-transform:capitalize}
+.carte span{display:block;margin-bottom:14px;font-size:13px}
+.btn{display:inline-block;border-radius:6px;padding:7px 14px;font-size:13px;font-weight:700;text-decoration:none;cursor:pointer;border:1px solid var(--bleu);color:var(--bleu);background:#fff}
+.btn.plein{background:var(--bleu);color:#fff}
+.btn:hover{filter:brightness(.93)}
+
+/* Filtres */
+.filtres{display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:16px 28px 0}
+.filtres label{font-size:12px;font-weight:700;color:var(--doux);display:flex;flex-direction:column;gap:4px}
+.filtres select{padding:7px 10px;border:1px solid var(--bordure);border-radius:6px;background:#fff;min-width:190px}
+.filtres .case{flex-direction:row;align-items:center;gap:8px;margin-top:18px;font-size:13px;color:var(--texte);font-weight:500}
+
+/* Liste */
+.panneau{margin:16px 28px 28px;background:#fff;border:1px solid var(--bordure);border-radius:12px;overflow:hidden}
+.panneau-tete{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--bordure)}
+.panneau-tete h2{margin:0;font-size:12px;letter-spacing:.06em;color:#444;text-transform:uppercase}
+.compteur{background:var(--bleu-clair);color:var(--bleu);border-radius:20px;padding:3px 12px;font-size:12px;font-weight:700}
+.groupe{margin:0;padding:10px 20px;background:#fafafa;border-bottom:1px solid var(--bordure);font-size:12px;font-weight:700;color:var(--bleu);text-transform:uppercase;letter-spacing:.04em}
+.ligne{display:flex;gap:16px;align-items:center;padding:14px 20px;border-bottom:1px solid #eee}
+.ligne:last-child{border-bottom:0}
+.ligne.fait{opacity:.55}
+.ligne.fait .titre{text-decoration:line-through}
+.pastille{flex:0 0 56px;height:56px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--vert-bg);color:var(--vert)}
+.pastille b{font-size:20px;line-height:1}
+.pastille i{font-style:normal;font-size:11px;font-weight:600;margin-top:3px;text-transform:uppercase}
+.pastille.urgent{background:var(--orange-bg);color:var(--orange)}
+.pastille.retard{background:var(--rouge-bg);color:var(--rouge)}
+.corps{flex:1;min-width:0}
+.titre{font-weight:700;font-size:15px;margin-bottom:4px;overflow-wrap:anywhere}
+.meta{color:var(--doux);font-size:13px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.tag{background:var(--bleu-clair);color:var(--bleu);border-radius:5px;padding:1px 8px;font-size:12px;font-weight:600}
+.etat{font-weight:700}
+.etat.retard{color:var(--rouge)} .etat.urgent{color:var(--orange)}
+.actions{display:flex;gap:14px;align-items:center;flex-shrink:0}
+.traite{display:flex;gap:6px;align-items:center;font-size:13px;cursor:pointer}
+.traite input{width:18px;height:18px;cursor:pointer;accent-color:var(--bleu)}
+.vide{padding:32px 20px;text-align:center;color:var(--doux)}
+@media(max-width:640px){.ligne{flex-wrap:wrap}.actions{width:100%;justify-content:space-between}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-gauche">
+    <h1>Suivi des parapheurs</h1>
+    <p>Documents à traiter, classés par service ou par délai de réponse</p>
+    <div class="puces" id="puces"></div>
+  </div>
+  <div class="carte" id="carte"></div>
+</header>
+
+<div class="filtres">
+  <label>Service
+    <select id="f-service"><option value="">Tous les services</option></select>
+  </label>
+  <label>Trier par
+    <select id="f-tri">
+      <option value="delai">Délai de réponse</option>
+      <option value="service">Service</option>
+    </select>
+  </label>
+  <label class="case" id="f-masquer-wrap"><input type="checkbox" id="f-masquer"> Masquer les parapheurs traités</label>
+</div>
+
+<section class="panneau">
+  <div class="panneau-tete">
+    <h2>Documents soumis à réponse</h2>
+    <span class="compteur" id="compteur">0</span>
+  </div>
+  <div id="liste"></div>
+</section>
+
+<script>
+const MOIS = ["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
+const etat = { service: "", tri: "delai", masquer: false };
+let lignes = [];
+let aTraite = true;
+
+grist.ready({
+  requiredAccess: "full",
+  columns: [
+    { name: "Nom",      title: "Nom",                    type: "Text" },
+    { name: "Services", title: "Services",               type: "Text,Choice" },
+    { name: "Delai",    title: "Délai de réponse",       type: "Date,DateTime,Numeric,Text" },
+    { name: "Lien",     title: "Lien du parapheur",      type: "Text" },
+    { name: "Traite",   title: "Traité (case à cocher)", type: "Bool", optional: true }
+  ]
+});
+
+grist.onRecords((records, mappings) => {
+  aTraite = !!(mappings && mappings.Traite);
+  lignes = records.map(r => grist.mapColumnNames(r)).filter(Boolean).map(enrichir);
+  document.getElementById("f-masquer-wrap").style.display = aTraite ? "" : "none";
+  majServices();
+  render();
+});
+
+/* ---------- Utilitaires ---------- */
+function el(tag, cls, txt) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (txt != null) e.textContent = txt;
+  return e;
+}
+function urlSure(u) {
+  try { const x = new URL(u); return /^https?:$/.test(x.protocol) ? x.href : null; }
+  catch (e) { return null; }
+}
+function aujourdhui() {
+  const n = new Date();
+  return Date.UTC(n.getFullYear(), n.getMonth(), n.getDate());
+}
+function lireDelai(v) {
+  if (v == null || v === "") return null;
+  if (typeof v === "number") return v > 1e8 ? new Date(v * 1000) : v;   // timestamp Grist ou nb de jours
+  if (typeof v === "string") {
+    const m = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (m) return new Date(Date.UTC(+m[3], +m[2] - 1, +m[1]));
+    const d = new Date(v);
+    if (!isNaN(d)) return d;
+  }
+  return null;
+}
+function enrichir(r) {
+  const d = lireDelai(r.Delai);
+  let restant = null;
+  if (d instanceof Date) restant = Math.round((d.getTime() - aujourdhui()) / 864e5);
+  else if (typeof d === "number") restant = d;
+  const fait = !!r.Traite;
+  let statut = "ok";
+  if (!fait && restant != null) {
+    if (d instanceof Date && restant < 0) statut = "retard";
+    else if (restant <= 3) statut = "urgent";
+  }
+  const cle = d instanceof Date ? d.getTime() : (typeof d === "number" ? d : Infinity);
+  return { ...r, d, restant, fait, statut, cle };
+}
+function texteEtat(l) {
+  if (l.restant == null) return "";
+  if (!(l.d instanceof Date)) return "Délai : " + l.restant + " j";
+  if (l.restant < 0) return "En retard de " + (-l.restant) + " j";
+  if (l.restant === 0) return "À rendre aujourd'hui";
+  return "J-" + l.restant;
+}
+
+/* ---------- Filtres ---------- */
+function majServices() {
+  const sel = document.getElementById("f-service");
+  const services = [...new Set(lignes.map(l => l.Services).filter(Boolean))].sort((a, b) => a.localeCompare(b, "fr"));
+  sel.innerHTML = "";
+  sel.appendChild(new Option("Tous les services", ""));
+  services.forEach(s => sel.appendChild(new Option(s, s)));
+  sel.value = services.includes(etat.service) ? etat.service : "";
+  etat.service = sel.value;
+}
+document.getElementById("f-service").onchange = e => { etat.service = e.target.value; render(); };
+document.getElementById("f-tri").onchange     = e => { etat.tri = e.target.value; render(); };
+document.getElementById("f-masquer").onchange = e => { etat.masquer = e.target.checked; render(); };
+
+/* ---------- Affichage ---------- */
+function render() {
+  renderEntete();
+
+  let liste = lignes.filter(l =>
+    (!etat.service || l.Services === etat.service) &&
+    !(etat.masquer && l.fait));
+
+  liste.sort((a, b) => etat.tri === "service"
+    ? (a.Services || "~").localeCompare(b.Services || "~", "fr") || (a.cle - b.cle)
+    : (a.cle - b.cle) || (a.Services || "").localeCompare(b.Services || "", "fr"));
+
+  document.getElementById("compteur").textContent = liste.length;
+  const conteneur = document.getElementById("liste");
+  conteneur.innerHTML = "";
+
+  if (!liste.length) {
+    conteneur.appendChild(el("div", "vide", "Aucun parapheur à afficher."));
+    return;
+  }
+
+  let groupeCourant = null;
+  liste.forEach(l => {
+    if (etat.tri === "service" && l.Services !== groupeCourant) {
+      groupeCourant = l.Services;
+      conteneur.appendChild(el("h3", "groupe", groupeCourant || "Sans service"));
+    }
+    conteneur.appendChild(ligneDom(l));
+  });
+}
+
+function ligneDom(l) {
+  const ligne = el("div", "ligne" + (l.fait ? " fait" : ""));
+
+  const p = el("div", "pastille" + (l.statut === "retard" ? " retard" : l.statut === "urgent" ? " urgent" : ""));
+  if (l.d instanceof Date) {
+    p.appendChild(el("b", null, l.d.getUTCDate()));
+    p.appendChild(el("i", null, MOIS[l.d.getUTCMonth()]));
+  } else if (typeof l.d === "number") {
+    p.appendChild(el("b", null, l.d));
+    p.appendChild(el("i", null, "jours"));
+  } else {
+    p.appendChild(el("b", null, "–"));
+  }
+  ligne.appendChild(p);
+
+  const corps = el("div", "corps");
+  corps.appendChild(el("div", "titre", l.Nom || "(sans nom)"));
+  const meta = el("div", "meta");
+  if (l.Services) meta.appendChild(el("span", "tag", l.Services));
+  const t = texteEtat(l);
+  if (t && !l.fait) meta.appendChild(el("span", "etat " + l.statut, t));
+  corps.appendChild(meta);
+  ligne.appendChild(corps);
+
+  const actions = el("div", "actions");
+  const href = urlSure(l.Lien);
+  if (href) {
+    const a = el("a", "btn", "Ouvrir le parapheur");
+    a.href = href; a.target = "_blank"; a.rel = "noopener noreferrer";
+    actions.appendChild(a);
+  }
+  if (aTraite) {
+    const lab = el("label", "traite");
+    const cb = document.createElement("input");
+    cb.type = "checkbox"; cb.checked = l.fait;
+    cb.onchange = () => grist.selectedTable.update({ id: l.id, fields: { Traite: cb.checked } });
+    lab.appendChild(cb);
+    lab.appendChild(document.createTextNode("Traité"));
+    actions.appendChild(lab);
+  }
+  ligne.appendChild(actions);
+  return ligne;
+}
+
+function renderEntete() {
+  const aFaire = lignes.filter(l => !l.fait);
+  const retard = aFaire.filter(l => l.statut === "retard").length;
+  const puces = document.getElementById("puces");
+  puces.innerHTML = "";
+  puces.appendChild(el("span", "puce", aFaire.length + " à traiter"));
+  if (retard) puces.appendChild(el("span", "puce alerte", retard + " en retard"));
+  if (aTraite) puces.appendChild(el("span", "puce", (lignes.length - aFaire.length) + " traités"));
+
+  const carte = document.getElementById("carte");
+  carte.innerHTML = "";
+  const prochain = aFaire.filter(l => l.d instanceof Date).sort((a, b) => a.cle - b.cle)[0];
+  carte.appendChild(el("small", null, "Prochaine échéance"));
+  if (!prochain) {
+    carte.appendChild(el("span", null, "Aucune échéance à venir."));
+    return;
+  }
+  carte.appendChild(el("strong", null,
+    prochain.d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" })));
+  carte.appendChild(el("span", null, (prochain.Nom || "") + (prochain.Services ? " · " + prochain.Services : "")));
+  const href = urlSure(prochain.Lien);
+  if (href) {
+    const a = el("a", "btn plein", "Ouvrir le parapheur");
+    a.href = href; a.target = "_blank"; a.rel = "noopener noreferrer";
+    carte.appendChild(a);
+  }
+}
+</script>
+</body>
+</html>
