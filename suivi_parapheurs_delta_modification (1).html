@@ -154,6 +154,9 @@ document.getElementById("f-recherche").oninput = e => {
 function render() {
   renderEntete();
   let liste = lignes.filter(l => {
+    // Exclure les lignes sans numéro de QE (null, vide ou uniquement des espaces)
+    if (l.NumeroQE == null || String(l.NumeroQE).trim() === "") return false;
+
     const texteRecherche = [l.Nom, l.NumeroQE]
       .filter(v => v != null && v !== "")
       .join(" ")
