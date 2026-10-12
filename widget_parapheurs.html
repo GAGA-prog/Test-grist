@@ -3,65 +3,291 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Suivi des parapheurs — Grist</title>
+<title>Suivi des parapheurs</title>
 <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 <style>
-:root{--bleu:#000091;--bleu-clair:#e3e3fd;--fond:#f5f5f5;--texte:#161616;--doux:#666;--bordure:#ddd;--vert-bg:#dffee6;--vert:#18753c;--orange-bg:#fff4d6;--orange:#b34000;--rouge-bg:#ffe9e9;--rouge:#ce0500}
-*{box-sizing:border-box}body{margin:0;background:var(--fond);color:var(--texte);font-family:Marianne,"Segoe UI",system-ui,sans-serif;font-size:14px}button,select,input{font:inherit}
-.hero{background:var(--bleu);color:#fff;padding:24px 28px;display:flex;gap:24px;flex-wrap:wrap;justify-content:space-between;align-items:flex-start}.hero-gauche{flex:1 1 380px;min-width:260px}.hero h1{margin:0 0 14px;font-size:26px;line-height:1.2}.hero p{margin:0 0 14px;font-size:15px}.puces{display:flex;gap:8px;flex-wrap:wrap}.puce{background:rgba(255,255,255,.14);border-radius:6px;padding:4px 10px;font-size:12.5px;font-weight:600}.puce.alerte{background:#fff;color:var(--rouge)}
-.carte{background:#fff;color:var(--texte);border-radius:12px;padding:18px 20px;flex:0 1 420px;min-width:260px}.carte small{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--doux);margin-bottom:10px;text-transform:uppercase}.carte strong{display:block;font-size:19px;margin-bottom:6px;text-transform:capitalize}.carte span{display:block;margin-bottom:14px;font-size:13px}.btn{display:inline-block;border-radius:6px;padding:7px 14px;font-size:13px;font-weight:700;text-decoration:none;cursor:pointer;border:1px solid var(--bleu);color:var(--bleu);background:#fff}.btn.plein{background:var(--bleu);color:#fff}.btn:hover{filter:brightness(.93)}
-.filtres{display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:16px 28px 0}.filtres label{font-size:12px;font-weight:700;color:var(--doux);display:flex;flex-direction:column;gap:4px}.filtres select{padding:7px 10px;border:1px solid var(--bordure);border-radius:6px;background:#fff;min-width:175px}.filtres .case{flex-direction:row;align-items:center;gap:8px;margin-top:18px;font-size:13px;color:var(--texte);font-weight:500}.filtres input[type=checkbox]{width:17px;height:17px;accent-color:var(--bleu)}
-.panneau{margin:16px 28px 28px;background:#fff;border:1px solid var(--bordure);border-radius:12px;overflow:hidden}.panneau-tete{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--bordure)}.panneau-tete h2{margin:0;font-size:12px;letter-spacing:.06em;color:#444;text-transform:uppercase}.compteur{background:var(--bleu-clair);color:var(--bleu);border-radius:20px;padding:3px 12px;font-size:12px;font-weight:700}.groupe{margin:0;padding:10px 20px;background:#fafafa;border-bottom:1px solid var(--bordure);font-size:12px;font-weight:700;color:var(--bleu);text-transform:uppercase;letter-spacing:.04em}.ligne{display:flex;gap:16px;align-items:center;padding:14px 20px;border-bottom:1px solid #eee}.ligne:last-child{border-bottom:0}.pastille{flex:0 0 56px;height:56px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--vert-bg);color:var(--vert)}.pastille b{font-size:20px;line-height:1}.pastille i{font-style:normal;font-size:11px;font-weight:600;margin-top:3px;text-transform:uppercase}.pastille.urgent{background:var(--orange-bg);color:var(--orange)}.pastille.retard{background:var(--rouge-bg);color:var(--rouge)}.corps{flex:1;min-width:0}.titre{font-weight:700;font-size:15px;margin-bottom:4px;overflow-wrap:anywhere}.meta{color:var(--doux);font-size:13px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}.tag{background:var(--bleu-clair);color:var(--bleu);border-radius:5px;padding:1px 8px;font-size:12px;font-weight:600}.etat{font-weight:700}.etat.retard{color:var(--rouge)}.etat.urgent{color:var(--orange)}.actions{display:flex;gap:10px;align-items:center;flex-shrink:0}.vide{padding:32px 20px;text-align:center;color:var(--doux)}.erreur{margin:16px 28px;padding:14px 18px;background:#fff4d6;border:1px solid #e5b567;border-radius:8px;color:#6b3b00;line-height:1.5}.auteur{font-size:12px;color:var(--doux);margin-top:5px}
-@media(max-width:640px){.ligne{flex-wrap:wrap}.actions{width:100%;justify-content:flex-start}.filtres{padding-left:16px;padding-right:16px}.panneau{margin-left:16px;margin-right:16px}.hero{padding:20px 16px}.erreur{margin-left:16px;margin-right:16px}}
+:root{
+  --bleu:#000091; --bleu-clair:#e3e3fd; --fond:#f5f5f5; --texte:#161616; --doux:#666;
+  --bordure:#ddd; --vert-bg:#dffee6; --vert:#18753c; --orange-bg:#fff4d6; --orange:#b34000;
+  --rouge-bg:#ffe9e9; --rouge:#ce0500;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fond);color:var(--texte);font-family:Marianne,"Segoe UI",system-ui,sans-serif;font-size:14px}
+button,select,input{font:inherit}
+
+/* Bandeau */
+.hero{background:var(--bleu);color:#fff;padding:24px 28px;display:flex;gap:24px;flex-wrap:wrap;justify-content:space-between;align-items:flex-start}
+.hero-gauche{flex:1 1 380px;min-width:260px}
+.hero h1{margin:0 0 14px;font-size:26px;line-height:1.2}
+.hero p{margin:0 0 14px;font-size:15px}
+.puces{display:flex;gap:8px;flex-wrap:wrap}
+.puce{background:rgba(255,255,255,.14);border-radius:6px;padding:4px 10px;font-size:12.5px;font-weight:600}
+.puce.alerte{background:#fff;color:var(--rouge)}
+
+/* Carte « prochaine échéance » */
+.carte{background:#fff;color:var(--texte);border-radius:12px;padding:18px 20px;flex:0 1 420px;min-width:260px}
+.carte small{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--doux);margin-bottom:10px;text-transform:uppercase}
+.carte strong{display:block;font-size:19px;margin-bottom:6px;text-transform:capitalize}
+.carte span{display:block;margin-bottom:14px;font-size:13px}
+.btn{display:inline-block;border-radius:6px;padding:7px 14px;font-size:13px;font-weight:700;text-decoration:none;cursor:pointer;border:1px solid var(--bleu);color:var(--bleu);background:#fff}
+.btn.plein{background:var(--bleu);color:#fff}
+.btn:hover{filter:brightness(.93)}
+
+/* Filtres */
+.filtres{display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:16px 28px 0}
+.filtres label{font-size:12px;font-weight:700;color:var(--doux);display:flex;flex-direction:column;gap:4px}
+.filtres select{padding:7px 10px;border:1px solid var(--bordure);border-radius:6px;background:#fff;min-width:190px}
+.filtres .case{flex-direction:row;align-items:center;gap:8px;margin-top:18px;font-size:13px;color:var(--texte);font-weight:500}
+
+/* Liste */
+.panneau{margin:16px 28px 28px;background:#fff;border:1px solid var(--bordure);border-radius:12px;overflow:hidden}
+.panneau-tete{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--bordure)}
+.panneau-tete h2{margin:0;font-size:12px;letter-spacing:.06em;color:#444;text-transform:uppercase}
+.compteur{background:var(--bleu-clair);color:var(--bleu);border-radius:20px;padding:3px 12px;font-size:12px;font-weight:700}
+.groupe{margin:0;padding:10px 20px;background:#fafafa;border-bottom:1px solid var(--bordure);font-size:12px;font-weight:700;color:var(--bleu);text-transform:uppercase;letter-spacing:.04em}
+.ligne{display:flex;gap:16px;align-items:center;padding:14px 20px;border-bottom:1px solid #eee}
+.ligne:last-child{border-bottom:0}
+.ligne.fait{opacity:.55}
+.ligne.fait .titre{text-decoration:line-through}
+.pastille{flex:0 0 56px;height:56px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--vert-bg);color:var(--vert)}
+.pastille b{font-size:20px;line-height:1}
+.pastille i{font-style:normal;font-size:11px;font-weight:600;margin-top:3px;text-transform:uppercase}
+.pastille.urgent{background:var(--orange-bg);color:var(--orange)}
+.pastille.retard{background:var(--rouge-bg);color:var(--rouge)}
+.corps{flex:1;min-width:0}
+.titre{font-weight:700;font-size:15px;margin-bottom:4px;overflow-wrap:anywhere}
+.meta{color:var(--doux);font-size:13px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.tag{background:var(--bleu-clair);color:var(--bleu);border-radius:5px;padding:1px 8px;font-size:12px;font-weight:600}
+.etat{font-weight:700}
+.etat.retard{color:var(--rouge)} .etat.urgent{color:var(--orange)}
+.actions{display:flex;gap:14px;align-items:center;flex-shrink:0}
+.traite{display:flex;gap:6px;align-items:center;font-size:13px;cursor:pointer}
+.traite input{width:18px;height:18px;cursor:pointer;accent-color:var(--bleu)}
+.vide{padding:32px 20px;text-align:center;color:var(--doux)}
+@media(max-width:640px){.ligne{flex-wrap:wrap}.actions{width:100%;justify-content:space-between}}
 </style>
 </head>
 <body>
-<header class="hero"><div class="hero-gauche"><h1>Suivi des parapheurs</h1><p>Documents à suivre, classés par échéance, service ou statut</p><div class="puces" id="puces"></div></div><div class="carte" id="carte"></div></header>
+
+<header class="hero">
+  <div class="hero-gauche">
+    <h1>Suivi des parapheurs</h1>
+    <p>Documents à traiter, classés par service ou par délai de réponse</p>
+    <div class="puces" id="puces"></div>
+  </div>
+  <div class="carte" id="carte"></div>
+</header>
+
 <div class="filtres">
-<label>Service<select id="f-service"><option value="">Tous les services</option></select></label>
-<label>Trier par<select id="f-tri"><option value="echeance">Échéance</option><option value="service">Service</option><option value="nom">Nom</option><option value="statut">Statut</option><option value="creation">Date de création</option></select></label>
-<label>Sens du tri<select id="f-sens"><option value="asc">Croissant</option><option value="desc">Décroissant</option></select></label>
-<label class="case"><input type="checkbox" id="f-sans-echeance"> Masquer sans échéance</label>
+  <label>Service
+    <select id="f-service"><option value="">Tous les services</option></select>
+  </label>
+  <label>Trier par
+    <select id="f-tri">
+      <option value="delai">Délai de réponse</option>
+      <option value="service">Service</option>
+    </select>
+  </label>
+  <label class="case" id="f-masquer-wrap"><input type="checkbox" id="f-masquer"> Masquer les parapheurs traités</label>
 </div>
-<section class="panneau"><div class="panneau-tete"><h2>Parapheurs extraits</h2><span class="compteur" id="compteur">0</span></div><div id="liste"></div></section>
-<div id="message" class="erreur" hidden></div>
+
+<section class="panneau">
+  <div class="panneau-tete">
+    <h2>Documents soumis à réponse</h2>
+    <span class="compteur" id="compteur">0</span>
+  </div>
+  <div id="liste"></div>
+</section>
+
 <script>
-const MOIS=["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
-const etat={service:"",tri:"echeance",sens:"asc",sansEcheance:false};let lignes=[];let derniereErreur="";
-// Ces noms correspondent aux identifiants de colonnes de la table Extraction du fichier Grist fourni.
-grist.ready({requiredAccess:"read table",columns:[
-{name:"Nom",title:"Nom",type:"Text"},
-{name:"Echeance",title:"Échéance",type:"Date,DateTime"},
-{name:"URL_Chrono",title:"Lien Chrono",type:"Text"},
-{name:"Statut",title:"Statut",type:"Text"},
-{name:"Retard",title:"Retard",type:"Text"},
-{name:"Ordre_Statut",title:"Ordre Statut",type:"Numeric"},
-{name:"sc",title:"Service / circuit (sc)",type:"Text",optional:true},
-{name:"Identite_courante",title:"Identité courante",type:"Text",optional:true},
-{name:"Auteur_courant",title:"Auteur courant",type:"Text",optional:true},
-{name:"Date_de_creation",title:"Date de création",type:"Date,DateTime",optional:true},
-{name:"Avec_Echeance",title:"Avec échéance",type:"Numeric",optional:true}
-]});
-grist.onRecords((records,mappings)=>{
-  try{
-    lignes=records.map(r=>grist.mapColumnNames(r)).filter(Boolean).map(enrichir);
-    afficherMessage("");majServices();render();
-  }catch(e){afficherMessage("Impossible de lire les données Grist : "+e.message);}
+const MOIS = ["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
+const etat = { service: "", tri: "delai", masquer: false };
+let lignes = [];
+let aTraite = true;
+
+grist.ready({
+  requiredAccess: "full",
+  columns: [
+    { name: "Nom",      title: "Nom",                    type: "Text" },
+    { name: "Services", title: "Services",               type: "Text,Choice" },
+    { name: "Delai",    title: "Délai de réponse",       type: "Date,DateTime,Numeric,Text" },
+    { name: "Lien",     title: "Lien du parapheur",      type: "Text" },
+    { name: "Traite",   title: "Traité (case à cocher)", type: "Bool", optional: true }
+  ]
 });
-function el(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=String(txt);return e;}
-function afficherMessage(t){const m=document.getElementById("message");m.hidden=!t;m.textContent=t;}
-function urlSure(u){try{const x=new URL(String(u||""));return /^https?:$/.test(x.protocol)?x.href:null;}catch(e){return null;}}
-function dateValeur(v){if(v==null||v==="")return null;if(v instanceof Date&&!isNaN(v))return v;if(typeof v==="number"){const ms=v>1e12?v:v*1000;const d=new Date(ms);return isNaN(d)?null:d;}if(typeof v==="string"){const m=v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);const d=m?new Date(+m[3],+m[2]-1,+m[1]):new Date(v);return isNaN(d)?null:d;}return null;}
-function serviceDepuisSc(v){if(!v)return "";const morceaux=String(v).split("/").map(x=>x.trim()).filter(Boolean);return morceaux.length?morceaux[morceaux.length-1]:String(v).trim();}
-function enrichir(r){const echeance=dateValeur(r.Echeance);const creation=dateValeur(r.Date_de_creation);const restant=echeance?Math.floor((Date.UTC(echeance.getFullYear(),echeance.getMonth(),echeance.getDate())-Date.UTC(new Date().getFullYear(),new Date().getMonth(),new Date().getDate()))/86400000):null;const statutTexte=String(r.Statut||"");const retardTexte=String(r.Retard||"");let statut="ok";if(retardTexte|| (restant!==null&&restant<0))statut="retard";else if(restant!==null&&restant<=3)statut="urgent";return {...r,echeance,creation,restant,service:serviceDepuisSc(r.sc),statut,statutTexte,retardTexte,cleEcheance:echeance?echeance.getTime():Infinity,cleCreation:creation?creation.getTime():Infinity,ordreStatut:Number(r.Ordre_Statut)||0};}
-function majServices(){const sel=document.getElementById("f-service");const services=[...new Set(lignes.map(l=>l.service).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"fr"));sel.replaceChildren(new Option("Tous les services",""));services.forEach(s=>sel.appendChild(new Option(s,s)));sel.value=services.includes(etat.service)?etat.service:"";etat.service=sel.value;}
-document.getElementById("f-service").addEventListener("change",e=>{etat.service=e.target.value;render();});
-document.getElementById("f-tri").addEventListener("change",e=>{etat.tri=e.target.value;render();});
-document.getElementById("f-sens").addEventListener("change",e=>{etat.sens=e.target.value;render();});
-document.getElementById("f-sans-echeance").addEventListener("change",e=>{etat.sansEcheance=e.target.checked;render();});
-function render(){renderEntete();let liste=lignes.filter(l=>(!etat.service||l.service===etat.service)&&(!etat.sansEcheance||l.echeance));const sens=etat.sens==="desc"?-1:1;liste.sort((a,b)=>{let c=0;switch(etat.tri){case"service":c=(a.service||"~").localeCompare(b.service||"~","fr");break;case"nom":c=String(a.Nom||"").localeCompare(String(b.Nom||""),"fr");break;case"statut":c=(a.ordreStatut-b.ordreStatut)||a.statut.localeCompare(b.statut,"fr");break;case"creation":c=a.cleCreation-b.cleCreation;break;default:c=a.cleEcheance-b.cleEcheance;}if(!c)c=String(a.Nom||"").localeCompare(String(b.Nom||""),"fr");return c*sens;});document.getElementById("compteur").textContent=liste.length;const cont=document.getElementById("liste");cont.replaceChildren();if(!liste.length){cont.appendChild(el("div","vide",lignes.length?"Aucun parapheur ne correspond aux filtres.":"Aucune ligne reçue. Vérifiez que le widget est associé à la table Extraction et que les colonnes sont correctement reliées."));return;}let groupe=null;liste.forEach(l=>{if(etat.tri==="service"&&l.service!==groupe){groupe=l.service;cont.appendChild(el("h3","groupe",groupe||"Sans service"));}cont.appendChild(ligneDom(l));});}
-function ligneDom(l){const ligne=el("div","ligne");const p=el("div","pastille"+(l.statut==="retard"?" retard":l.statut==="urgent"?" urgent":""));if(l.echeance){p.appendChild(el("b",null,l.echeance.getDate()));p.appendChild(el("i",null,MOIS[l.echeance.getMonth()]));}else{p.appendChild(el("b",null,"–"));p.appendChild(el("i",null,"sans date"));}ligne.appendChild(p);const corps=el("div","corps");corps.appendChild(el("div","titre",l.Nom||"(sans nom)"));const meta=el("div","meta");if(l.service)meta.appendChild(el("span","tag",l.service));if(l.statutTexte)meta.appendChild(el("span","tag",l.statutTexte));if(l.restant!==null){let t=l.restant<0?"En retard de "+(-l.restant)+" j":l.restant===0?"Échéance aujourd’hui":"J-"+l.restant;if(l.restant<0)meta.appendChild(el("span","etat retard",t));else if(l.restant<=3)meta.appendChild(el("span","etat urgent",t));else meta.appendChild(el("span","etat",t));}else if(l.retardTexte)meta.appendChild(el("span","etat retard",l.retardTexte));corps.appendChild(meta);const auteur=l.Identite_courante||l.Auteur_courant;if(auteur)corps.appendChild(el("div","auteur","En cours chez : "+auteur));ligne.appendChild(corps);const actions=el("div","actions");const href=urlSure(l.URL_Chrono);if(href){const a=el("a","btn","Ouvrir le parapheur");a.href=href;a.target="_blank";a.rel="noopener noreferrer";actions.appendChild(a);}ligne.appendChild(actions);return ligne;}
-function renderEntete(){const aFaire=lignes.filter(l=>l.statut!=="ok");const retard=lignes.filter(l=>l.statut==="retard").length;const puces=document.getElementById("puces");puces.replaceChildren();puces.appendChild(el("span","puce",lignes.length+" parapheur(s)"));puces.appendChild(el("span","puce",lignes.filter(l=>l.echeance).length+" avec échéance"));if(retard)puces.appendChild(el("span","puce alerte",retard+" en retard"));const carte=document.getElementById("carte");carte.replaceChildren();const prochain=lignes.filter(l=>l.echeance).sort((a,b)=>a.cleEcheance-b.cleEcheance)[0];carte.appendChild(el("small",null,"Prochaine échéance"));if(!prochain){carte.appendChild(el("span",null,"Aucune échéance renseignée."));return;}carte.appendChild(el("strong",null,prochain.echeance.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})));carte.appendChild(el("span",null,(prochain.Nom||"")+(prochain.service?" · "+prochain.service:"")));const href=urlSure(prochain.URL_Chrono);if(href){const a=el("a","btn plein","Ouvrir le parapheur");a.href=href;a.target="_blank";a.rel="noopener noreferrer";carte.appendChild(a);}}
+
+grist.onRecords((records, mappings) => {
+  aTraite = !!(mappings && mappings.Traite);
+  lignes = records.map(r => grist.mapColumnNames(r)).filter(Boolean).map(enrichir);
+  document.getElementById("f-masquer-wrap").style.display = aTraite ? "" : "none";
+  majServices();
+  render();
+});
+
+/* ---------- Utilitaires ---------- */
+function el(tag, cls, txt) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (txt != null) e.textContent = txt;
+  return e;
+}
+function urlSure(u) {
+  try { const x = new URL(u); return /^https?:$/.test(x.protocol) ? x.href : null; }
+  catch (e) { return null; }
+}
+function aujourdhui() {
+  const n = new Date();
+  return Date.UTC(n.getFullYear(), n.getMonth(), n.getDate());
+}
+function lireDelai(v) {
+  if (v == null || v === "") return null;
+  if (typeof v === "number") return v > 1e8 ? new Date(v * 1000) : v;   // timestamp Grist ou nb de jours
+  if (typeof v === "string") {
+    const m = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (m) return new Date(Date.UTC(+m[3], +m[2] - 1, +m[1]));
+    const d = new Date(v);
+    if (!isNaN(d)) return d;
+  }
+  return null;
+}
+function enrichir(r) {
+  const d = lireDelai(r.Delai);
+  let restant = null;
+  if (d instanceof Date) restant = Math.round((d.getTime() - aujourdhui()) / 864e5);
+  else if (typeof d === "number") restant = d;
+  const fait = !!r.Traite;
+  let statut = "ok";
+  if (!fait && restant != null) {
+    if (d instanceof Date && restant < 0) statut = "retard";
+    else if (restant <= 3) statut = "urgent";
+  }
+  const cle = d instanceof Date ? d.getTime() : (typeof d === "number" ? d : Infinity);
+  return { ...r, d, restant, fait, statut, cle };
+}
+function texteEtat(l) {
+  if (l.restant == null) return "";
+  if (!(l.d instanceof Date)) return "Délai : " + l.restant + " j";
+  if (l.restant < 0) return "En retard de " + (-l.restant) + " j";
+  if (l.restant === 0) return "À rendre aujourd'hui";
+  return "J-" + l.restant;
+}
+
+/* ---------- Filtres ---------- */
+function majServices() {
+  const sel = document.getElementById("f-service");
+  const services = [...new Set(lignes.map(l => l.Services).filter(Boolean))].sort((a, b) => a.localeCompare(b, "fr"));
+  sel.innerHTML = "";
+  sel.appendChild(new Option("Tous les services", ""));
+  services.forEach(s => sel.appendChild(new Option(s, s)));
+  sel.value = services.includes(etat.service) ? etat.service : "";
+  etat.service = sel.value;
+}
+document.getElementById("f-service").onchange = e => { etat.service = e.target.value; render(); };
+document.getElementById("f-tri").onchange     = e => { etat.tri = e.target.value; render(); };
+document.getElementById("f-masquer").onchange = e => { etat.masquer = e.target.checked; render(); };
+
+/* ---------- Affichage ---------- */
+function render() {
+  renderEntete();
+
+  let liste = lignes.filter(l =>
+    (!etat.service || l.Services === etat.service) &&
+    !(etat.masquer && l.fait));
+
+  liste.sort((a, b) => etat.tri === "service"
+    ? (a.Services || "~").localeCompare(b.Services || "~", "fr") || (a.cle - b.cle)
+    : (a.cle - b.cle) || (a.Services || "").localeCompare(b.Services || "", "fr"));
+
+  document.getElementById("compteur").textContent = liste.length;
+  const conteneur = document.getElementById("liste");
+  conteneur.innerHTML = "";
+
+  if (!liste.length) {
+    conteneur.appendChild(el("div", "vide", "Aucun parapheur à afficher."));
+    return;
+  }
+
+  let groupeCourant = null;
+  liste.forEach(l => {
+    if (etat.tri === "service" && l.Services !== groupeCourant) {
+      groupeCourant = l.Services;
+      conteneur.appendChild(el("h3", "groupe", groupeCourant || "Sans service"));
+    }
+    conteneur.appendChild(ligneDom(l));
+  });
+}
+
+function ligneDom(l) {
+  const ligne = el("div", "ligne" + (l.fait ? " fait" : ""));
+
+  const p = el("div", "pastille" + (l.statut === "retard" ? " retard" : l.statut === "urgent" ? " urgent" : ""));
+  if (l.d instanceof Date) {
+    p.appendChild(el("b", null, l.d.getUTCDate()));
+    p.appendChild(el("i", null, MOIS[l.d.getUTCMonth()]));
+  } else if (typeof l.d === "number") {
+    p.appendChild(el("b", null, l.d));
+    p.appendChild(el("i", null, "jours"));
+  } else {
+    p.appendChild(el("b", null, "–"));
+  }
+  ligne.appendChild(p);
+
+  const corps = el("div", "corps");
+  corps.appendChild(el("div", "titre", l.Nom || "(sans nom)"));
+  const meta = el("div", "meta");
+  if (l.Services) meta.appendChild(el("span", "tag", l.Services));
+  const t = texteEtat(l);
+  if (t && !l.fait) meta.appendChild(el("span", "etat " + l.statut, t));
+  corps.appendChild(meta);
+  ligne.appendChild(corps);
+
+  const actions = el("div", "actions");
+  const href = urlSure(l.Lien);
+  if (href) {
+    const a = el("a", "btn", "Ouvrir le parapheur");
+    a.href = href; a.target = "_blank"; a.rel = "noopener noreferrer";
+    actions.appendChild(a);
+  }
+  if (aTraite) {
+    const lab = el("label", "traite");
+    const cb = document.createElement("input");
+    cb.type = "checkbox"; cb.checked = l.fait;
+    cb.onchange = () => grist.selectedTable.update({ id: l.id, fields: { Traite: cb.checked } });
+    lab.appendChild(cb);
+    lab.appendChild(document.createTextNode("Traité"));
+    actions.appendChild(lab);
+  }
+  ligne.appendChild(actions);
+  return ligne;
+}
+
+function renderEntete() {
+  const aFaire = lignes.filter(l => !l.fait);
+  const retard = aFaire.filter(l => l.statut === "retard").length;
+  const puces = document.getElementById("puces");
+  puces.innerHTML = "";
+  puces.appendChild(el("span", "puce", aFaire.length + " à traiter"));
+  if (retard) puces.appendChild(el("span", "puce alerte", retard + " en retard"));
+  if (aTraite) puces.appendChild(el("span", "puce", (lignes.length - aFaire.length) + " traités"));
+
+  const carte = document.getElementById("carte");
+  carte.innerHTML = "";
+  const prochain = aFaire.filter(l => l.d instanceof Date).sort((a, b) => a.cle - b.cle)[0];
+  carte.appendChild(el("small", null, "Prochaine échéance"));
+  if (!prochain) {
+    carte.appendChild(el("span", null, "Aucune échéance à venir."));
+    return;
+  }
+  carte.appendChild(el("strong", null,
+    prochain.d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" })));
+  carte.appendChild(el("span", null, (prochain.Nom || "") + (prochain.Services ? " · " + prochain.Services : "")));
+  const href = urlSure(prochain.Lien);
+  if (href) {
+    const a = el("a", "btn plein", "Ouvrir le parapheur");
+    a.href = href; a.target = "_blank"; a.rel = "noopener noreferrer";
+    carte.appendChild(a);
+  }
+}
 </script>
 </body>
 </html>
