@@ -57,9 +57,8 @@ button,select,input{font:inherit}
 <body>
 <header class="hero">
   <div class="hero-gauche">
-    <h1>Suivi des parapheurs</h1>
-    <p>Documents à traiter, classés par service et delta de modification</p>
-    <div class="puces" id="puces"></div>
+    <h1>Suivi des QE </h1>
+    <p> Liste des QE non traitées sur Parapheur</p>
   </div>
 </header>
 
@@ -70,16 +69,14 @@ button,select,input{font:inherit}
   <label>Delta modification
     <select id="f-delta">
       <option value="">Tous les deltas</option>
-      <option value="vert">Moins de 20 jours (vert)</option>
-      <option value="orange">De 20 à 59 jours (orange)</option>
-      <option value="rouge">60 jours et plus (rouge)</option>
-      <option value="inconnu">Delta non renseigné</option>
+      <option value="vert">Moins de 20 jours </option>
+      <option value="orange">De 20 à 59 jours </option>
+      <option value="rouge">60 jours et plus </option>
     </select>
   </label>
   <label class="champ-recherche">Rechercher une QE
     <input type="search" id="f-recherche" placeholder="Nom ou numéro de QE…">
   </label>
-  <label class="case" id="f-masquer-wrap"><input type="checkbox" id="f-masquer"> Masquer les parapheurs traités</label>
 </div>
 
 <section class="panneau">
@@ -103,7 +100,6 @@ grist.ready({
     { name: "DeltaModification", title: "Delta modification", type: "Numeric" },
     { name: "Lien", title: "Lien du parapheur", type: "Text" },
     { name: "NumeroQE", title: "Numéro QE", type: "Numeric,Text" },
-    { name: "Traite", title: "Traité", type: "Bool" }
   ]
 });
 
