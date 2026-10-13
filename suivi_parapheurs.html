@@ -35,6 +35,8 @@ button,select,input{font:inherit}
 .arbre-btn:focus-visible,.arbre-panel button:focus-visible{outline:2px solid var(--bleu);outline-offset:1px}
 .arbre-panel{position:absolute;z-index:20;top:100%;left:0;margin-top:4px;min-width:290px;max-height:420px;overflow:auto;background:#fff;border:1px solid var(--bordure);border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.15);padding:8px}
 .arbre-panel[hidden]{display:none}
+body.arbre-fixe .arbre-btn{display:none}
+body.arbre-fixe .arbre-panel{position:static;margin-top:0;box-shadow:none;max-height:none;overflow:visible;min-width:260px}
 .arbre-panel ul{list-style:none;margin:0;padding:0 0 0 20px}
 .arbre-panel > ul{padding-left:0}
 .rang{display:flex;align-items:center;gap:2px}
@@ -144,7 +146,13 @@ const ARBRE = { label: "DG", children: [
 ]};
 const LIBELLE_AUTRES = "Autres (hors arborescence)";
 
-const etat = { service: "", delta: 0, recherche: "", ouverts: new Set([ARBRE.label]) };
+/* true  = l'arborescence est toujours affichée et entièrement dépliée
+   false = menu déroulant classique (clic pour ouvrir, nœuds repliables) */
+const ARBRE_FIXE = false;
+document.body.classList.toggle("arbre-fixe", ARBRE_FIXE);
+document.getElementById("arbre-panel").hidden = !ARBRE_FIXE;
+
+const etat = { service: "", delta: 0, recherche: "", ouverts: new Set(["DG", "DE", "DC"]) };
 let lignes = [];
 let racine = null;          // arbre construit
 let index = new Map();      // CLÉ NORMALISÉE -> nœud
@@ -283,9 +291,9 @@ function noeudDom(n) {
   const li = el("li");
   li.setAttribute("role", "treeitem");
   const rang = el("div", "rang");
-  const ouvert = etat.ouverts.has(n.label);
+  const ouvert = ARBRE_FIXE || etat.ouverts.has(n.label);
 
-  if (n.enfants.length) {
+  if (n.enfants.length && !ARBRE_FIXE) {
     const b = el("button", "bascule", ouvert ? "▾" : "▸");
     b.type = "button";
     b.setAttribute("aria-label", (ouvert ? "Replier " : "Déplier ") + n.label);
@@ -318,10 +326,12 @@ function noeudDom(n) {
   return li;
 }
 function ouvrirArbre() {
+  if (ARBRE_FIXE) return;
   document.getElementById("arbre-panel").hidden = false;
   document.getElementById("arbre-btn").setAttribute("aria-expanded", "true");
 }
 function fermerArbre() {
+  if (ARBRE_FIXE) return;
   document.getElementById("arbre-panel").hidden = true;
   document.getElementById("arbre-btn").setAttribute("aria-expanded", "false");
 }
