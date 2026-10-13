@@ -101,7 +101,7 @@ body.arbre-fixe .arbre-panel{position:static;margin-top:0;box-shadow:none;max-he
   </div>
 
   <div class="champ delta-champ">
-    <label class="lbl" for="f-delta">Delta modification minimum : </label>
+    <label class="lbl" for="f-delta">Delta modification minimum : <span id="delta-val">0</span> jour(s)</label>
     <div class="delta-ctrl">
       <input type="number" id="f-delta-num" min="0" step="1" value="0" aria-label="Valeur du delta minimum en jours">
     </div>
@@ -342,7 +342,7 @@ document.addEventListener("click", e => {
 document.addEventListener("keydown", e => { if (e.key === "Escape") fermerArbre(); });
 
 /* ---------- barre delta ---------- */
-const rangeDelta = document.getElementById("f-delta");
+const rangeDelta = document.getElementById("f-delta-num");
 const numDelta = document.getElementById("f-delta-num");
 function appliquerDelta(v) {
   let n = Number(v);
