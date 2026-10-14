@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Suivi des parapheurs</title>
+<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+<style>
+:root{
+  --bleu:#000091; --bleu-clair:#e3e3fd; --fond:#f5f5f5; --texte:#161616; --doux:#666;
+  --bordure:#ddd; --vert-bg:#dffee6; --vert:#18753c; --orange-bg:#fff4d6; --orange:#b34000;
+  --rouge-bg:#ffe9e9; --rouge:#ce0500;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fond);color:var(--texte);font-family:Marianne,"Segoe UI",system-ui,sans-serif;font-size:14px}
+button,select,input{font:inherit}
+.hero{background:var(--bleu);color:#fff;padding:24px 28px;display:flex;gap:24px;flex-wrap:wrap;justify-content:space-between;align-items:flex-start}
+.hero-gauche{flex:1 1 380px;min-width:260px}
+.hero h1{margin:0 0 14px;font-size:26px;line-height:1.2}
+.hero p{margin:0 0 14px;font-size:15px}
+.puces{display:flex;gap:8px;flex-wrap:wrap}
+.puce{background:rgba(255,255,255,.14);border-radius:6px;padding:4px 10px;font-size:12.5px;font-weight:600}
+
+/* Filtres */
+.filtres{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;padding:16px 28px 0}
+.champ{display:flex;flex-direction:column;gap:4px}
+.champ > .lbl{font-size:12px;font-weight:700;color:var(--doux)}
+.filtres input[type="search"]{padding:9px 12px;border:1px solid var(--bordure);border-radius:6px;background:#fff;min-width:190px;width:min(340px, 90vw)}
+.champ-recherche{flex:1 1 260px}
+.champ-recherche input{width:100%!important}
+
+/* Liste déroulante en arborescence */
+.arbre-wrap{position:relative}
+.arbre-btn{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-width:240px;padding:9px 12px;border:1px solid var(--bordure);border-radius:6px;background:#fff;cursor:pointer;text-align:left}
+.arbre-btn:focus-visible,.arbre-panel button:focus-visible{outline:2px solid var(--bleu);outline-offset:1px}
+.arbre-panel{position:absolute;z-index:20;top:100%;left:0;margin-top:4px;min-width:290px;max-height:420px;overflow:auto;background:#fff;border:1px solid var(--bordure);border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.15);padding:8px}
+.arbre-panel[hidden]{display:none}
+body.arbre-fixe .arbre-btn{display:none}
+body.arbre-fixe .arbre-panel{position:static;margin-top:0;box-shadow:none;max-height:none;overflow:visible;min-width:260px}
+.arbre-panel ul{list-style:none;margin:0;padding:0 0 0 20px}
+.arbre-panel > ul{padding-left:0}
+.rang{display:flex;align-items:center;gap:2px}
+.bascule,.espace{flex:0 0 22px;height:26px}
+.bascule{border:0;background:transparent;color:var(--bleu);cursor:pointer;font-size:12px;border-radius:4px}
+.bascule:hover{background:var(--bleu-clair)}
+.item{flex:1;display:flex;justify-content:space-between;align-items:center;gap:12px;border:0;background:transparent;padding:4px 8px;border-radius:4px;cursor:pointer;text-align:left;color:var(--texte)}
+.item:hover{background:var(--bleu-clair)}
+.item.actif{background:var(--bleu);color:#fff}
+.item.vide-noeud{color:#999}
+.item.actif.vide-noeud{color:#fff}
+.nb{font-size:11px;font-weight:700;background:#eee;color:#444;border-radius:10px;padding:1px 7px}
+.item.actif .nb{background:rgba(255,255,255,.25);color:#fff}
+.tous{font-weight:700;margin-bottom:4px;border-bottom:1px solid #eee;padding-bottom:4px}
+
+/* Barre delta */
+.delta-champ{min-width:260px}
+.delta-ctrl{display:flex;align-items:center;gap:12px;padding:6px 0}
+.delta-ctrl input[type="range"]{flex:1;min-width:140px;accent-color:var(--bleu)}
+.delta-ctrl input[type="number"]{width:78px;padding:7px 8px;border:1px solid var(--bordure);border-radius:6px;background:#fff}
+.delta-aide{font-size:12px;color:var(--doux)}
+
+.panneau{margin:16px 28px 28px;background:#fff;border:1px solid var(--bordure);border-radius:12px;overflow:hidden}
+.panneau-tete{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--bordure)}
+.panneau-tete h2{margin:0;font-size:12px;letter-spacing:.06em;color:#444;text-transform:uppercase}
+.compteur{background:var(--bleu-clair);color:var(--bleu);border-radius:20px;padding:3px 12px;font-size:12px;font-weight:700}
+.ligne{display:flex;gap:16px;align-items:center;padding:14px 20px;border-bottom:1px solid #eee}
+.ligne:last-child{border-bottom:0}
+.pastille{flex:0 0 64px;height:56px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--vert-bg);color:var(--vert)}
+.pastille b{font-size:20px;line-height:1}
+.pastille i{font-style:normal;font-size:10px;font-weight:600;margin-top:3px;text-transform:uppercase}
+.pastille.orange{background:var(--orange-bg);color:var(--orange)}
+.pastille.rouge{background:var(--rouge-bg);color:var(--rouge)}
+.corps{flex:1;min-width:0}
+.titre{font-weight:700;font-size:15px;margin-bottom:4px;overflow-wrap:anywhere}
+.meta{color:var(--doux);font-size:13px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.tag{background:var(--bleu-clair);color:var(--bleu);border-radius:5px;padding:1px 8px;font-size:12px;font-weight:600}
+.actions{display:flex;gap:14px;align-items:center;flex-shrink:0}
+.btn{display:inline-block;color:var(--bleu);border:1px solid var(--bleu);border-radius:6px;padding:7px 10px;text-decoration:none;font-size:13px;font-weight:600}
+.btn:hover{background:var(--bleu-clair)}
+.vide{padding:32px 20px;text-align:center;color:var(--doux)}
+@media(max-width:640px){.ligne{flex-wrap:wrap}.actions{width:100%;justify-content:space-between}}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="hero-gauche">
+    <h1>Suivi des QE </h1>
+    <p>Liste des QE sur Parapheur</p>
+  </div>
+</header>
+
+<div class="filtres">
+  <div class="champ">
+    <span class="lbl" id="lbl-service">Service</span>
+    <div class="arbre-wrap" id="arbre-wrap">
+      <button type="button" class="arbre-btn" id="arbre-btn" aria-haspopup="true" aria-expanded="false" aria-labelledby="lbl-service arbre-btn">
+        <span id="arbre-btn-texte">Tous les services</span><span aria-hidden="true">▾</span>
+      </button>
+      <div class="arbre-panel" id="arbre-panel" hidden></div>
+    </div>
+  </div>
+
+  <div class="champ delta-champ">
+    <label class="lbl" for="f-delta">Delta modification minimum : <span id="delta-val">0</span> jour(s)</label>
+    <div class="delta-ctrl">
+      <input type="range" id="f-delta" min="0" max="100" step="1" value="0">
+      <input type="number" id="f-delta-num" min="0" step="1" value="0" aria-label="Valeur du delta minimum en jours">
+    </div>
+    <span class="delta-aide">Affiche les parapheurs dont le delta est supérieur ou égal à cette valeur.</span>
+  </div>
+
+  <div class="champ champ-recherche">
+    <label class="lbl" for="f-recherche">Rechercher une QE</label>
+    <input type="search" id="f-recherche" placeholder="Nom, numéro de QE ou agent…">
+  </div>
+</div>
+
+<section class="panneau">
+  <div class="panneau-tete">
+    <h2>Documents soumis à réponse</h2>
+    <span class="compteur" id="compteur">0</span>
+  </div>
+  <div id="liste"></div>
+</section>
+
+<script>
+/* ------------------------------------------------------------------
+   Arborescence des services (à modifier ici si l'organigramme évolue).
+   Une feuille = une chaîne. Un nœud = { label, children: [...] }.
+   Les valeurs de la colonne « Services » doivent correspondre aux
+   libellés ci-dessous (casse et espaces ignorés).
+------------------------------------------------------------------ */
+const ARBRE = { label: "DG", children: [
+  { label: "DE", children: [
+    { label: "SD1", children: ["1A", "1B", "1C"] },
+    { label: "SD2", children: ["2A", "2B", "2C", "2D", "2E"] },
+    { label: "SD3", children: ["3A", "3B", "3C", "FACE"] },
+    { label: "SD4", children: ["4A", "4B", "4C"] },
+  ]},
+  { label: "DC", children: [
+    { label: "SDAC", children: ["BESNBC", "BAFCC", "BMC", "BACC"] },
+    { label: "SD5",  children: ["BQA", "5CD", "SCN-PNCEE", "ZFE"] },
+    { label: "SD6",  children: ["6A", "6B", "6C", "SCN"] },
+  ]},
+  { label: "SD7", children: ["7A", "7B", "7C", "CI"] },
+]};
+const LIBELLE_AUTRES = "Autres (hors arborescence)";
+
+/* true  = l'arborescence est toujours affichée et entièrement dépliée
+   false = menu déroulant classique (clic pour ouvrir, nœuds repliables) */
+const ARBRE_FIXE = false;
+document.body.classList.toggle("arbre-fixe", ARBRE_FIXE);
+document.getElementById("arbre-panel").hidden = !ARBRE_FIXE;
+
+const etat = { service: "", delta: 0, recherche: "", ouverts: new Set(["DG", "DE", "DC"]) };
+let lignes = [];
+let racine = null;          // arbre construit
+let index = new Map();      // CLÉ NORMALISÉE -> nœud
+
+grist.ready({
+  requiredAccess: "full",
+  columns: [
+    { name: "Nom", title: "Nom", type: "Text" },
+    { name: "Services", title: "Services", type: "Text,Choice" },
+    { name: "DeltaModification", title: "Delta modification", type: "Numeric" },
+    { name: "Lien", title: "Lien du parapheur", type: "Text" },
+    { name: "NumeroQE", title: "Numéro QE", type: "Numeric,Text" },
+    { name: "Agent", title: "Nom de l'agent", type: "Text,Choice", optional: true },
+  ]
+});
+
+grist.onRecords((records) => {
+  lignes = records.map(r => grist.mapColumnNames(r)).filter(Boolean).map(enrichir);
+  majArbre();
+  majDeltaMax();
+  render();
+});
+
+/* ---------- utilitaires ---------- */
+function el(tag, cls, txt) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (txt != null) e.textContent = txt;
+  return e;
+}
+function urlSure(u) {
+  try { const x = new URL(u); return /^https?:$/.test(x.protocol) ? x.href : null; }
+  catch (e) { return null; }
+}
+function nombreDelta(v) {
+  if (v == null || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+function cleService(s) {
+  if (s == null) return "";
+  let v = String(s).trim();
+  // tolère un chemin du type "DG > DE > SD1" ou "DG/DE/SD1" : on garde le dernier segment
+  if (/[>›|\/]/.test(v)) v = v.split(/[>›|\/]/).pop().trim();
+  return v.toLocaleUpperCase("fr");
+}
+function enrichir(r) {
+  const delta = nombreDelta(r.DeltaModification);
+  let couleur = "";
+  if (delta != null) {
+    if (delta < 20) couleur = "";
+    else if (delta < 60) couleur = "orange";
+    else couleur = "rouge";
+  }
+  return { ...r, delta, couleur, cle: cleService(r.Services) };
+}
+function aQE(l) {
+  return !(l.NumeroQE == null || String(l.NumeroQE).trim() === "");
+}
+
+/* ---------- arborescence ---------- */
+function construire(def, parent, niveau) {
+  if (typeof def === "string") def = { label: def };
+  const n = { label: def.label, parent, niveau, enfants: [], nb: 0 };
+  index.set(n.label.toLocaleUpperCase("fr"), n);
+  (def.children || []).forEach(c => n.enfants.push(construire(c, n, niveau + 1)));
+  return n;
+}
+function ancetres(n) { const a = []; while (n) { a.push(n); n = n.parent; } return a; }
+function descendants(n, set = new Set()) {
+  set.add(n.label.toLocaleUpperCase("fr"));
+  n.enfants.forEach(c => descendants(c, set));
+  return set;
+}
+function majArbre() {
+  index = new Map();
+  racine = construire(ARBRE, null, 0);
+
+  // Services présents dans les données mais absents de l'arborescence
+  const hors = lignes.filter(l => aQE(l) && l.cle && !index.has(l.cle));
+  let autres = null;
+  if (hors.length) {
+    autres = { label: LIBELLE_AUTRES, parent: null, niveau: 0, enfants: [], nb: 0 };
+    index.set(autres.label.toLocaleUpperCase("fr"), autres);
+  }
+  // Comptage cumulé (chaque nœud compte ses descendants)
+  lignes.filter(aQE).forEach(l => {
+    const n = index.get(l.cle) || (l.cle ? autres : null);
+    if (n) ancetres(n).forEach(a => a.nb++);
+  });
+  racine.autres = autres;
+
+  // Sélection toujours valide ?
+  if (etat.service && !index.has(etat.service.toLocaleUpperCase("fr"))) etat.service = "";
+  renderArbre();
+  majBoutonArbre();
+}
+function majBoutonArbre() {
+  const t = document.getElementById("arbre-btn-texte");
+  if (!etat.service) { t.textContent = "Tous les services"; return; }
+  const n = index.get(etat.service.toLocaleUpperCase("fr"));
+  t.textContent = n ? ancetres(n).reverse().map(a => a.label).join(" › ") : "Tous les services";
+}
+function selectionner(label) {
+  etat.service = label;
+  if (label) {
+    const n = index.get(label.toLocaleUpperCase("fr"));
+    if (n) ancetres(n).slice(1).forEach(a => etat.ouverts.add(a.label)); // déplie les parents
+  }
+  fermerArbre();
+  renderArbre();
+  majBoutonArbre();
+  render();
+}
+function renderArbre() {
+  const panel = document.getElementById("arbre-panel");
+  panel.innerHTML = "";
+
+  const tous = el("div", "rang tous");
+  tous.appendChild(el("span", "espace"));
+  const btnTous = el("button", "item" + (!etat.service ? " actif" : ""));
+  btnTous.type = "button";
+  btnTous.appendChild(el("span", null, "Tous les services"));
+  btnTous.appendChild(el("span", "nb", String(lignes.filter(aQE).length)));
+  btnTous.onclick = () => selectionner("");
+  tous.appendChild(btnTous);
+  panel.appendChild(tous);
+
+  const ul = el("ul");
+  ul.setAttribute("role", "tree");
+  ul.appendChild(noeudDom(racine));
+  if (racine.autres) ul.appendChild(noeudDom(racine.autres));
+  panel.appendChild(ul);
+}
+function noeudDom(n) {
+  const li = el("li");
+  li.setAttribute("role", "treeitem");
+  const rang = el("div", "rang");
+  const ouvert = ARBRE_FIXE || etat.ouverts.has(n.label);
+
+  if (n.enfants.length && !ARBRE_FIXE) {
+    const b = el("button", "bascule", ouvert ? "▾" : "▸");
+    b.type = "button";
+    b.setAttribute("aria-label", (ouvert ? "Replier " : "Déplier ") + n.label);
+    b.onclick = (e) => {
+      e.stopPropagation();
+      if (etat.ouverts.has(n.label)) etat.ouverts.delete(n.label); else etat.ouverts.add(n.label);
+      renderArbre();
+    };
+    rang.appendChild(b);
+    li.setAttribute("aria-expanded", String(ouvert));
+  } else {
+    rang.appendChild(el("span", "espace"));
+  }
+
+  const actif = etat.service && etat.service.toLocaleUpperCase("fr") === n.label.toLocaleUpperCase("fr");
+  const item = el("button", "item" + (actif ? " actif" : "") + (n.nb === 0 ? " vide-noeud" : ""));
+  item.type = "button";
+  item.appendChild(el("span", null, n.label));
+  item.appendChild(el("span", "nb", String(n.nb)));
+  item.onclick = () => selectionner(n.label);
+  rang.appendChild(item);
+  li.appendChild(rang);
+
+  if (n.enfants.length && ouvert) {
+    const ul = el("ul");
+    ul.setAttribute("role", "group");
+    n.enfants.forEach(c => ul.appendChild(noeudDom(c)));
+    li.appendChild(ul);
+  }
+  return li;
+}
+function ouvrirArbre() {
+  if (ARBRE_FIXE) return;
+  document.getElementById("arbre-panel").hidden = false;
+  document.getElementById("arbre-btn").setAttribute("aria-expanded", "true");
+}
+function fermerArbre() {
+  if (ARBRE_FIXE) return;
+  document.getElementById("arbre-panel").hidden = true;
+  document.getElementById("arbre-btn").setAttribute("aria-expanded", "false");
+}
+document.getElementById("arbre-btn").onclick = () => {
+  document.getElementById("arbre-panel").hidden ? ouvrirArbre() : fermerArbre();
+};
+document.addEventListener("click", e => {
+  if (!e.composedPath().includes(document.getElementById("arbre-wrap"))) fermerArbre();
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape") fermerArbre(); });
+
+/* ---------- barre delta ---------- */
+const rangeDelta = document.getElementById("f-delta");
+const numDelta = document.getElementById("f-delta-num");
+function appliquerDelta(v) {
+  let n = Number(v);
+  if (!Number.isFinite(n) || n < 0) n = 0;
+  etat.delta = n;
+  rangeDelta.value = n;
+  numDelta.value = n;
+  document.getElementById("delta-val").textContent = n;
+  render();
+}
+rangeDelta.oninput = e => appliquerDelta(e.target.value);
+numDelta.oninput = e => appliquerDelta(e.target.value);
+function majDeltaMax() {
+  const deltas = lignes.filter(aQE).map(l => l.delta).filter(d => d != null);
+  const max = Math.max(0, ...deltas);
+  rangeDelta.max = Math.max(10, Math.ceil(max));
+}
+
+document.getElementById("f-recherche").oninput = e => {
+  etat.recherche = e.target.value.trim().toLocaleLowerCase("fr");
+  render();
+};
+
+/* ---------- affichage ---------- */
+function render() {
+  renderEntete();
+  const cles = etat.service && index.size
+    ? descendants(index.get(etat.service.toLocaleUpperCase("fr")))
+    : null;
+
+  let liste = lignes.filter(l => {
+    // Exclure les lignes sans numéro de QE (null, vide ou uniquement des espaces)
+    if (!aQE(l)) return false;
+
+    const texteRecherche = [l.Nom, l.NumeroQE, l.Agent]
+      .filter(v => v != null && v !== "")
+      .join(" ")
+      .toLocaleLowerCase("fr");
+    const deltaOK = etat.delta <= 0 || (l.delta != null && l.delta >= etat.delta);
+    const serviceOK = !cles || cles.has(l.cle);
+    return serviceOK && deltaOK &&
+      (!etat.recherche || texteRecherche.includes(etat.recherche));
+  });
+  liste.sort((a, b) => {
+    const da = a.delta == null ? Infinity : a.delta;
+    const db = b.delta == null ? Infinity : b.delta;
+    return db - da || String(a.Services || "").localeCompare(String(b.Services || ""), "fr");
+  });
+
+  document.getElementById("compteur").textContent = liste.length;
+  const conteneur = document.getElementById("liste");
+  conteneur.innerHTML = "";
+  if (!liste.length) {
+    conteneur.appendChild(el("div", "vide", "Aucun parapheur à afficher."));
+    return;
+  }
+  liste.forEach(l => conteneur.appendChild(ligneDom(l)));
+}
+
+function ligneDom(l) {
+  const ligne = el("div", "ligne");
+  const classes = "pastille" + (l.couleur ? " " + l.couleur : "");
+  const p = el("div", classes);
+  p.appendChild(el("b", null, l.delta == null ? "–" : String(l.delta)));
+  p.appendChild(el("i", null, "jours"));
+  ligne.appendChild(p);
+
+  const corps = el("div", "corps");
+  corps.appendChild(el("div", "titre", l.Nom || "(sans nom)"));
+  const meta = el("div", "meta");
+  if (l.Services) meta.appendChild(el("span", "tag", l.Services));
+  meta.appendChild(el("span", null, "Numéro de QE : " + (l.NumeroQE == null || l.NumeroQE === "" ? "non renseigné" : l.NumeroQE)));
+  const agent = l.Agent == null ? "" : String(l.Agent).trim();
+  meta.appendChild(el("span", null, "Agent : " + (agent || "non renseigné")));
+  corps.appendChild(meta);
+  ligne.appendChild(corps);
+
+  const actions = el("div", "actions");
+  const href = urlSure(l.Lien);
+  if (href) {
+    const a = el("a", "btn", "Ouvrir le parapheur");
+    a.href = href; a.target = "_blank"; a.rel = "noopener noreferrer";
+    actions.appendChild(a);
+  }
+  ligne.appendChild(actions);
+  return ligne;
+}
+
+function renderEntete() {
+  const puces = document.getElementById("puces");
+  if (!puces) return;
+  puces.innerHTML = "";
+  puces.appendChild(el("span", "puce", lignes.length + " documents"));
+  puces.appendChild(el("span", "puce", lignes.filter(l => l.delta != null && l.delta >= 60).length + " avec delta ≥ 60 jours"));
+}
+</script>
+</body>
+</html>
