@@ -42,7 +42,7 @@ function build(node,inherit){
   if(typeof node==="string") return {name:node,value:counts[node]||0,...inherit,leaf:true};
   const col={fg:node.fg||inherit.fg,bg:node.bg||inherit.bg};
   const kids=node.c.map(k=>build(k,col));
-  if(counts[node.n]) kids.push({name:node.n+" (direct)",value:counts[node.n],...col,leaf:true});
+  if(counts[node.n]) kids.push({name:node.n,value:counts[node.n],...col,leaf:true});
   const ch=kids.filter(k=>k.value>0);
   return {name:node.n,children:ch,value:ch.reduce((s,k)=>s+k.value,0),...col};
 }
