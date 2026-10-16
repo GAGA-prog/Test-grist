@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+<style>
+  :root{--ink:#161616;--paper:#fff}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;font-family:Marianne,Arial,sans-serif;color:var(--ink);background:var(--paper)}
+  #bar{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;font-size:14px;border-bottom:1px solid #ddd}
+  #bar strong{font-size:16px}
+  #bar label{cursor:pointer}
+  #map{position:relative;width:100%;height:calc(100% - 42px)}
+  .cell{position:absolute;overflow:hidden;border:2px solid var(--paper)}
+  .group{background:var(--bg)}
+  .group>.title{display:flex;justify-content:space-between;gap:6px;padding:2px 6px;font-size:12px;font-weight:bold;color:#fff;background:var(--fg);white-space:nowrap}
+  .leaf{background:var(--bg);color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;line-height:1.15}
+  .leaf b{font-size:clamp(11px,2.2vw,22px)}
+  .leaf span{font-size:12px}
+  .leaf:hover{outline:2px solid var(--ink);outline-offset:-2px}
+</style></head>
+<body>
+<div id="bar"><strong id="total">Parapheurs par service</strong>
+<label><input type="checkbox" id="sans" checked> Inclure « sans service »</label></div>
+<div id="map"></div>
+<script>
+// Organigramme : n = nom, c = enfants (chaîne = bureau)
+const TREE={n:"DG",fg:"#3a3a8c",bg:"#e8e8f8",c:[
+ {n:"DE",fg:"#000091",bg:"#dde3fa",c:[
+  {n:"SD1",c:["1A","1B","1C"]},
+  {n:"SD2",c:["2A","2B","2C","2D","2E"]},
+  {n:"SD3",c:["3A","3B","3C","FACE"]},
+  {n:"SD4",c:["4A","4B","4C"]}]},
+ {n:"DC",fg:"#18753c",bg:"#d9f0e1",c:[
+  {n:"SDAC",c:["BESNBC","BAFCC","BMC","BACC"]},
+  {n:"SD5",c:["BQA","5CD","SCN-PNCEE","ZFE"]},
+  {n:"SD6",c:["6A","6B","6C","SCN"]}]},
+ {n:"SD7",fg:"#b34000",bg:"#fbe3d3",c:["7A","7B","7C","CI"]}]};
+const GREY={fg:"#666",bg:"#ececec"};
+let counts={};
+
+function build(node,inherit){
+  if(typeof node==="string") return {name:node,value:counts[node]||0,...inherit,leaf:true};
+  const col={fg:node.fg||inherit.fg,bg:node.bg||inherit.bg};
+  const kids=node.c.map(k=>build(k,col));
+  if(counts[node.n]) kids.push({name:node.n+" (direct)",value:counts[node.n],...col,leaf:true});
+  const ch=kids.filter(k=>k.value>0);
+  return {name:node.n,children:ch,value:ch.reduce((s,k)=>s+k.value,0),...col};
+}
+function used(node,set){ if(typeof node==="string")set.add(node); else{set.add(node.n);node.c.forEach(k=>used(k,set));} return set; }
+
+function worst(a,s){const t=a.reduce((x,y)=>x+y,0);return Math.max(s*s*Math.max(...a)/(t*t),t*t/(s*s*Math.min(...a)));}
+function squarify(items,x,y,w,h){
+  const total=items.reduce((s,i)=>s+i.value,0), sc=w*h/total;
+  let rest=items.slice().sort((a,b)=>b.value-a.value).map(i=>({i,a:i.value*sc}));
+  while(rest.length){
+    const s=Math.min(w,h); let row=[rest[0]],k=1,w0=worst([rest[0].a],s);
+    while(k<rest.length){const n=worst(row.map(r=>r.a).concat(rest[k].a),s); if(n<=w0){row.push(rest[k]);w0=n;k++}else break;}
+    rest=rest.slice(k);
+    const sum=row.reduce((t,r)=>t+r.a,0), th=sum/s; let off=0;
+    row.forEach(r=>{const len=r.a/th;
+      if(w>=h){Object.assign(r.i,{x:x,y:y+off,w:th,h:len});}else{Object.assign(r.i,{x:x+off,y:y,w:len,h:th});}
+      off+=len;});
+    if(w>=h){x+=th;w-=th}else{y+=th;h-=th}
+  }
+}
+function place(node){
+  if(!node.children||!node.children.length) return;
+  const head=18;
+  if(node.w<30||node.h<head+10) {node.children=[];return;}
+  squarify(node.children,node.x,node.y+head,node.w,node.h-head);
+  node.children.forEach(place);
+}
+function html(node,ox,oy){
+  const st=`left:${node.x-ox}px;top:${node.y-oy}px;width:${node.w}px;height:${node.h}px;--fg:${node.fg};--bg:${node.bg}`;
+  if(node.leaf) return `<div class="cell leaf" style="${st}" title="${node.name} : ${node.value}"><b>${node.name}</b><span>${node.value}</span></div>`;
+  return `<div class="cell group" style="${st}"><div class="title"><span>${node.name}</span><span>${node.value}</span></div>${node.children.map(c=>html(c,node.x,node.y)).join("")}</div>`;
+}
+function render(){
+  const map=document.getElementById("map"), W=map.clientWidth, H=map.clientHeight;
+  const known=used(TREE,new Set());
+  const root=build(TREE,GREY);
+  const extra=Object.keys(counts).filter(k=>k&&!known.has(k)).map(k=>({name:k,value:counts[k],...GREY,leaf:true}));
+  const autres=extra.length?{name:"Autres",children:extra,value:extra.reduce((s,k)=>s+k.value,0),fg:"#666",bg:"#ececec"}:null;
+  const sans=document.getElementById("sans").checked&&counts[""]?{name:"Sans service",value:counts[""],fg:"#929292",bg:"#f2f2f2",leaf:true}:null;
+  const top={name:"Tous",children:[root,autres,sans].filter(n=>n&&n.value>0),fg:"#000",bg:"#fff"};
+  top.value=top.children.reduce((s,k)=>s+k.value,0);
+  document.getElementById("total").textContent=`Parapheurs par service : ${top.value} au total`;
+  Object.assign(top,{x:0,y:-18,w:W,h:H+18});
+  place(top);
+  map.innerHTML=top.children.map(c=>html(c,0,0)).join("");
+}
+grist.ready({columns:[{name:"Service",title:"Service"},{name:"count",title:"Nombre",type:"Numeric,Int"}],requiredAccess:"read table"});
+grist.onRecords((recs,mapping)=>{
+  counts={};
+  recs.forEach(r=>{const m=grist.mapColumnNames(r,mapping); if(!m)return;
+    const k=String(m.Service||"").trim(); counts[k]=(counts[k]||0)+(Number(m.count)||0);});
+  render();
+});
+document.getElementById("sans").onchange=render;
+window.addEventListener("resize",render);
+</script></body></html>
